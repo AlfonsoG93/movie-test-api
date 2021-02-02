@@ -1,30 +1,43 @@
 import mongoose from "mongoose";
 import yargs from "yargs";
-import { ApolloServer } from "apollo-server";
-import { getUserInfo } from "./auth";
-import typeDefs from "./schema";
+import { ApolloServer, PubSub } from "apollo-server";
+import typeDefs from "./schema/typeDefs";
 import resolvers from "./resolvers";
+import config from "./config";
+import * as dotenv from "dotenv";
+import findConfig from "find-config";
 
-const args = yargs.option("mongo-uri", {
+const pubSub = new PubSub();
+const args =  (mongoString: string) => yargs.option("mongo-uri", {
   describe: "Mongo URI",
-  default: "mongodb://localhost:27017/movies",
+  default: mongoString,
   type: "string",
   group: "Mongo",
 }).argv;
 
 async function start() {
+  if (process.env.NODE_ENV !== "production") {
+    dotenv.config({ path: findConfig('.env') || "" });
+    config.MONGO_URI = (process.env.MONGO_CLOUD_URI) ? process.env.MONGO_CLOUD_URI : `mongodb://localhost:27017/${config.DB_NAME}`
+    config.SECRET_KEY = (process.env.SECRET_KEY) ? process.env.SECRET_KEY : `secret`
+  }
+  const dbArgs = args(config.MONGO_URI)
   try {
-    await mongoose.connect(args["mongo-uri"], {
-      useUnifiedTopology: true,
-      useNewUrlParser: true,
-    });
+    await mongoose.connect(
+      dbArgs["mongo-uri"]
+      , {
+        useUnifiedTopology: true,
+        useNewUrlParser: true,
+      });
     console.log("Connected to DB.");
-
+    
     await new ApolloServer({
       typeDefs,
       resolvers,
       context: ({ req }) => ({
-        userInfo: getUserInfo(req.headers.authorization || ""),
+        // userInfo: getUserInfo(req.headers.authorization || ""),
+        req,
+        pubSub,
       }),
     }).listen(3000);
     console.log("GraphQl API running on port 3000.");
