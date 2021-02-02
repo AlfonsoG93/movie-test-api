@@ -35,6 +35,7 @@ async function start() {
       typeDefs,
       resolvers,
       context: ({ req }) => ({
+        // userInfo: getUserInfo(req.headers.authorization || ""),
         req,
         pubSub,
       }),
