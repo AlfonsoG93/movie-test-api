@@ -7,15 +7,17 @@ const resolverMap = {
     // Score Calculations
     ratingCount: (parent: Movie) => parent.ratings.length
     ,
-    avg: (parent: Movie) => {
+    grade: (parent: Movie) => {
       let sum = 0;
+      let totalMax = 0
       if (parent.ratingCount > 0) {
+        totalMax = parent.ratingCount * 5
         for (let rating of parent.ratings) {
-          sum = rating.score;
+          sum += rating.score;
         }
-        return sum / parent.ratingCount;
+        return Math.round(sum * 100/totalMax);
       } else {
-        return 0;
+        return sum;
       }
       
     },

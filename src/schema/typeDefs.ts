@@ -17,7 +17,7 @@ const typeDefs = gql`
         createdAt: String!
         ratings: [Rating]!
         ratingCount: Int!
-        avg: Float!
+        grade: Int!
         username: String!
         user: ID!
     }
@@ -65,11 +65,12 @@ const typeDefs = gql`
     }
 
     input PaginationParams {
+        pageNumber: Int
         #            The number of results to show. Must be >= 1. Default = 20
         pageSize: Int
         #            ----
         #            If you add a cursor here, it will only return results _after_ this cursor
-        after: String
+        #        after: String
         #            ----
         #            Filter
         filterObject: FilterObj
@@ -77,6 +78,7 @@ const typeDefs = gql`
 
 
     type MoviesConnection {
+        currentPage: Int!
         cursor: String!
         hasMore: Boolean!
         movies: [Movie]!
@@ -85,7 +87,7 @@ const typeDefs = gql`
     type Query {
         currentUser: User!
         getMovies(paginationParams: PaginationParams): MoviesConnection!
-        getMovie(movieID: ID!): Movie!
+        getMovie(movieId: ID!): Movie!
         me: User
     }
 

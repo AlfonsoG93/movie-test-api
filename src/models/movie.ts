@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
-
-
+import mongoosePaginate from "mongoose-paginate";
 export interface Rating {
   username: string;
   score: number;
@@ -16,7 +15,7 @@ export interface Movie extends mongoose.Document {
   createdAt: string;
   ratings: Rating[];
   ratingCount: number;
-  avg: number;
+  grade: number;
   username: string;
   user: string;
 }
@@ -33,7 +32,7 @@ const MovieSchema = new mongoose.Schema(
       createdAt: { type: String, required: true }
     }],
     ratingCount: { type: Number, required: true },
-    avg: { type: Number, required: true },
+    grade: { type: Number, required: true },
     createdAt: { type: String, required: true },
     username: { type: String, required: true },
     user: { type: mongoose.Schema.Types.ObjectId, required: true },
@@ -44,4 +43,5 @@ const MovieSchema = new mongoose.Schema(
   },
 );
 
+MovieSchema.plugin(mongoosePaginate);
 export const MovieModel = mongoose.model<Movie>("Movie", MovieSchema, "Movies");
