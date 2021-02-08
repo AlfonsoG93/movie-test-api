@@ -8,6 +8,7 @@ import config from "../../config";
 import { loginFieldsValidator, registerFieldsValidator } from "./authValidators";
 
 export interface RegisterInput {
+  [key: string]: any;
   username: string;
   email: string;
   password: string;
@@ -15,6 +16,7 @@ export interface RegisterInput {
 }
 
 export interface LoginInput {
+  [key: string]: any;
   username: string;
   password: string;
 }
@@ -24,15 +26,16 @@ function generateToken(user: User) {
     {
       id: user._id,
       username: user.username,
-      email: user.email
+      email: user.email,
     },
     config.SECRET_KEY,
-    { expiresIn: "24h"}
+    { expiresIn: "24h" },
   );
 }
+
 export async function register(
   _: void,
-  { registerInput }: { registerInput: RegisterInput }
+  { registerInput }: { registerInput: RegisterInput },
 ): Promise<RegisterResponse> {
   const { username, password, email } = registerInput;
   const { valid, errors } = registerFieldsValidator(registerInput);
@@ -43,39 +46,33 @@ export async function register(
   const existingEmail: number = await UserModel.countDocuments({ email });
   
   if (existingUser) {
-    throw new UserInputError("Username Taken", {
-      errors: {
-        username: "Username already used!",
-      },
-    });
+    errors.username = "Username already used!";
+    throw new UserInputError("Username already used", { errors });
   }
   if (existingEmail) {
-    throw new UserInputError("Email Taken", {
-      errors: {
-        username: "Email already used!",
-      },
-    });
+    errors.email = "Email already used!";
+    throw new UserInputError("Email already used", { errors });
   }
   const hashedPassword: string = await bcrypt.hash(password, 10);
   const user: User = new UserModel({
     username,
     password: hashedPassword,
-    email: email
+    email: email,
   });
   const newUser = await user.save();
   const token = generateToken(newUser);
   // @ts-ignore
-  const userData = {...newUser._doc}
+  const userData = { ...newUser._doc };
   return {
     ...userData,
     id: user._id,
-    token
+    token,
   };
 }
 
 export async function login(
   _: void,
-  { loginInput }: { loginInput: LoginInput }
+  { loginInput }: { loginInput: LoginInput },
 ): Promise<LoginResponse> {
   const { username, password } = loginInput;
   const { valid, errors } = loginFieldsValidator(loginInput);
@@ -83,24 +80,26 @@ export async function login(
     throw new UserInputError("Login Input Errors", { errors });
   }
   
-  const loginAuthError = new UserInputError("Username or password are incorrect");
-  
   const user: User | null = await UserModel.findOne({ username });
   if (!user) {
-    throw loginAuthError;
+    errors.general = "Username or password are incorrect";
+    throw new UserInputError("Username or password are incorrect", { errors });
+    ;
   }
   const passwordValid = await bcrypt.compare(password, user.password);
   if (!passwordValid) {
-    throw loginAuthError;
+    errors.general = "Username or password are incorrect";
+    throw new UserInputError("Username or password are incorrect", { errors });
+    ;
   }
-  const token = generateToken(user)
+  const token = generateToken(user);
   
   // @ts-ignore
-  const userData = {...user._doc}
+  const userData = { ...user._doc };
   return {
     ...userData,
     id: user._id,
-    token
+    token,
   };
 }
 
@@ -116,6 +115,6 @@ export async function currentUser(_: void, _args: any, ctx: Context): Promise<Us
   return {
     id: user._id,
     username: user.username,
-    email: user.email
+    email: user.email,
   };
 }

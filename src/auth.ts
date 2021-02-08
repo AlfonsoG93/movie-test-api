@@ -4,7 +4,7 @@ import { UserInfo } from "./types";
 import config from "./config";
 
 export function getUserInfo(context: any): UserInfo | ApolloError {
-  const tokenBearer = context.req.headers.authorization || "";
+  const tokenBearer = context.req?.headers?.authorization || "";
   if (tokenBearer) {
     const token = tokenBearer.split("Bearer ")[1];
     if (token) {

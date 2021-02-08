@@ -1,6 +1,5 @@
 dist
 node_modules
-src/config.ts
 .env
 /.idea
 **/.DS_Store

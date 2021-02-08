@@ -2,22 +2,24 @@ import { Movie, MovieModel, Rating } from "../../models/movie";
 import { getUserInfo } from "../../auth";
 import { AuthenticationError, UserInputError } from "apollo-server";
 import { addMovieValidator } from "./moviesValidator";
+import { PaginateOptions } from "mongoose";
 
 interface FilterObj {
-  userMovies: boolean
-  field: string
-  order: string
+  userMovies?: boolean
+  field?: string
+  order?: string
 }
 
 interface PaginationParams {
+  pageNumber: number
   pageSize: number
-  after: string
-  filterObj: FilterObj
+  filterObject: FilterObj
 }
 
 export interface AddMovieInput {
+  id: string;
   title: string
-  runtime: number
+  duration: number
   releaseDate: string
   actors: string[]
 }
@@ -27,76 +29,58 @@ interface AddRatingInput {
   score: number
 }
 
-const paginateResults = (
-  cursor: string,
-  pageSize: number,
-  results: Movie[],
-) => {
-  if (pageSize < 1) return [];
-  
-  if (!cursor) return results.slice(0, pageSize);
-  const cursorIndex = results.findIndex(item => {
-    // if an item has a `cursor` on it, use that, otherwise try to generate one
-    let itemCursor = item._id;
-    
-    // if there's still not a cursor, return false by default
-    return itemCursor ? cursor === itemCursor : false;
-  });
-  
-  return cursorIndex >= 0
-         ? cursorIndex === results.length - 1 // don't let us overflow
-           ? []
-           : results.slice(
-        cursorIndex + 1,
-        Math.min(results.length, cursorIndex + 1 + pageSize),
-      )
-         : results.slice(0, pageSize);
-};
-
 export async function getMovies(
   _: void,
-  { paginationParams }: { paginationParams?: PaginationParams },
+  { paginationParams }: { paginationParams: PaginationParams },
   context: any,
 ) {
+  
+  const filterObj: FilterObj = paginationParams?.filterObject ? paginationParams?.filterObject : {};
+  let pageNumber = 1;
   let pageSize = 20;
-  let filterObj = {
+  
+  let checkedFilter = {
     userMovies: false,
-    order: "desc",
     field: "",
+    order: "",
   };
-  let after = "";
   if (paginationParams) {
-    filterObj = (paginationParams.filterObj) ? paginationParams.filterObj : filterObj;
+    if (paginationParams.filterObject) {
+      checkedFilter.userMovies = (filterObj.userMovies) ? filterObj.userMovies : checkedFilter.userMovies;
+      checkedFilter.field = (filterObj.field) ? filterObj.field : checkedFilter.field;
+      checkedFilter.order = (filterObj.order) ? filterObj.order : checkedFilter.order;
+    }
+    pageNumber = (paginationParams.pageNumber) ? paginationParams.pageNumber : pageNumber;
     pageSize = (paginationParams.pageSize) ? paginationParams.pageSize : pageSize;
-    after = (paginationParams.after) ? paginationParams.after : after;
   }
   
   const user = getUserInfo(context);
-  const where = filterObj.userMovies ?
-    { username: user.username }
-                                     : {};
-  const order = (filterObj.order) ? (filterObj.order === "asc") ? 1 : -1 : -1;
-  const sortParam = (filterObj.field && filterObj.order) ?
-    { [`${filterObj.field}`]: order }
-                                                         : {};
+  const query = filterObj.userMovies ? { username: user.username } : {};
+  let order: number = 1;
+  if (filterObj.order) {
+    if (filterObj.order === "asc") {
+      order = -1;
+    }
+  }
+  let sortParam: any = { grade: 1 };
+  if (filterObj.field) {
+    sortParam = { [`${filterObj.field}`]: order };
+  }
   try {
-    const allMovies: Movie[] = await MovieModel.find(where).sort(sortParam);
-    allMovies.reverse();
-    const movies = paginateResults(
-      after,
-      pageSize,
-      allMovies,
-    );
+    const options: PaginateOptions = {
+      page: pageNumber,
+      sort: sortParam,
+    };
     
+    const paginatedResults = await MovieModel.paginate(query, options);
+    const paginatedMovies: Movie[] = paginatedResults.docs;
+    
+    const currentPage = (paginatedResults.page) ? paginatedResults.page : pageNumber;
     return {
-      movies,
-      cursor: movies[movies.length - 1]._id,
-      // if the cursor at the end of the paginated results is the same as the
-      // last item in _all_ results, then there are no more results after this
-      hasMore: movies.length
-               ? movies[movies.length - 1]._id !==
-                 allMovies[allMovies.length - 1]._id
-               : false,
+      movies: paginatedMovies,
+      cursor: (paginatedMovies.length > 0) ? paginatedMovies[paginatedMovies.length - 1]._id : "",
+      currentPage: (paginatedResults.page) ? paginatedResults.page : pageNumber,
+      hasMore: (paginatedResults.pages) ? paginatedResults.pages > currentPage : false,
     };
   } catch (err) {
     throw new Error(err);
@@ -130,31 +114,47 @@ export async function addMovie(
 ) {
   const user = getUserInfo(context);
   const { valid, errors } = addMovieValidator(addMovieInput);
+  
   if (!valid) {
     throw new UserInputError("Add Movie Input Errors", { errors });
   }
-  
-  const fetchedMovies: Movie[] = await MovieModel.find({ title: addMovieInput.title });
-  if (fetchedMovies.length === 0) {
+  const movieIdExist = addMovieInput.id !== "";
+  if (!movieIdExist) {
     const newMovie = new MovieModel({
       ...addMovieInput,
       createdAt: new Date().toISOString(),
       ratings: [],
       ratingCount: 0,
-      avg: 0,
+      grade: 0,
       user: user.id,
       username: user.username,
     });
     
     const movie = await newMovie.save();
     return movie;
-  } else if (fetchedMovies.length > 0) {
-    const existingMovie: Movie = fetchedMovies[0];
-    if (existingMovie.username === user.username) {
-      const updatedMovie = await existingMovie.update({ ...existingMovie, ...addMovieInput });
-      return updatedMovie;
-    } else {
-      throw new UserInputError("Movie already exist");
+  } else {
+    try {
+      const movieToUpdate: Movie | null = await MovieModel.findById(addMovieInput.id);
+      if (movieToUpdate) {
+        const moviesWithMatchingNames: Movie[] = await MovieModel.find({ title: movieToUpdate.title });
+        if (moviesWithMatchingNames.length === 1 && movieToUpdate.id === moviesWithMatchingNames[0].id) {
+          if (movieToUpdate.user.toString() === user.id) {
+            const updatedMovie: Movie | null = await MovieModel.findByIdAndUpdate(movieToUpdate.id, {
+              title: addMovieInput.title,
+              releaseDate: addMovieInput.releaseDate,
+              actors: addMovieInput.actors,
+              duration: addMovieInput.duration,
+            }, { upsert: true });
+            if (updatedMovie) {
+              return updatedMovie;
+            } else throw new Error("Could not save changes to movie")
+            
+          } else throw new UserInputError("User not allowed to edit this movie");
+        } else throw new UserInputError("Cannot use already existing movie title");
+      }
+      throw new UserInputError("Could not retrieve matching movie to update");
+    } catch (e) {
+      throw new Error(e);
     }
   }
 }
@@ -208,17 +208,7 @@ export async function addRating(
           createdAt: new Date().toISOString(),
         });
       }
-      // SCORE CALCULATIONS
       movie.ratingCount = movie.ratings.length;
-      /*      let sum = 0;
-       if (movie.ratingCount > 0) {
-       for (let rating of movie.ratings) {
-       sum = rating.score;
-       }
-       movie.avg = sum / movie.ratingCount;
-       } else {
-       movie.avg = 0;
-       }*/
       
       await movie.save();
       

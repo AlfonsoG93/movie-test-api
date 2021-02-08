@@ -3,12 +3,12 @@ import yargs from "yargs";
 import { ApolloServer, PubSub } from "apollo-server";
 import typeDefs from "./schema/typeDefs";
 import resolvers from "./resolvers";
-import config from "./config";
 import * as dotenv from "dotenv";
 import findConfig from "find-config";
+import config from "./config";
 
 const pubSub = new PubSub();
-const args =  (mongoString: string) => yargs.option("mongo-uri", {
+const args = (mongoString: string) => yargs.option("mongo-uri", {
   describe: "Mongo URI",
   default: mongoString,
   type: "string",
@@ -17,11 +17,11 @@ const args =  (mongoString: string) => yargs.option("mongo-uri", {
 
 async function start() {
   if (process.env.NODE_ENV !== "production") {
-    dotenv.config({ path: findConfig('.env') || "" });
-    config.MONGO_URI = (process.env.MONGO_CLOUD_URI) ? process.env.MONGO_CLOUD_URI : `mongodb://localhost:27017/${config.DB_NAME}`
-    config.SECRET_KEY = (process.env.SECRET_KEY) ? process.env.SECRET_KEY : `secret`
+    dotenv.config({ path: findConfig(".env") || "" });
+    config.MONGO_URI = (process.env.MONGO_CLOUD_URI) ? process.env.MONGO_CLOUD_URI : config.MONGO_URI;
+    config.SECRET_KEY = (process.env.SECRET_KEY) ? process.env.SECRET_KEY : `secret`;
   }
-  const dbArgs = args(config.MONGO_URI)
+  const dbArgs = args(config.MONGO_URI);
   try {
     await mongoose.connect(
       dbArgs["mongo-uri"]
@@ -39,8 +39,8 @@ async function start() {
         req,
         pubSub,
       }),
-    }).listen(3000);
-    console.log("GraphQl API running on port 3000.");
+    }).listen(config.PORT);
+    console.log(`GraphQl API running on port ${config.PORT}.`);
   } catch (err) {
     console.error(err);
     process.exit(1);
