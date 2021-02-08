@@ -1,12 +1,12 @@
-import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 import * as setup from "../../__tests__/setup";
 
 import { UserModel } from "../../models";
 import { UserInfo } from "../../types";
 import { login, register } from "../Authentication/auth";
 import { UserInputError } from "apollo-server";
-import { RegisterValidationErrors } from "../Authentication/authValidators";
+import { RegisterValidationErrors } from "../Authentication/authValidators"
 
 let testMongo: setup.TestMongoConn;
 
@@ -18,11 +18,12 @@ afterEach(() => setup.afterEach(testMongo));
 
 describe("Test register", () => {
   it("should create new user object for successful registration", async () => {
-    const response = await register(undefined, {
-      username: "johndoe",
-      password: "test",
-      confirmPassword: "test",
-      email: "johndoe@fakemail.com",
+    const response = await register(undefined, { registerInput: {
+        username: "johndoe",
+        password: "test",
+        confirmPassword: "test",
+        email: "johndoe@fakemail.com",
+      }
     });
     expect(response.username).toEqual("johndoe");
     
@@ -33,11 +34,12 @@ describe("Test register", () => {
   it("should throw error if registering with empty values or Invalid format email", async () => {
     let error;
     try {
-      await register(undefined, {
-        username: "",
-        password: "",
-        confirmPassword: "test",
-        email: "123",
+      await register(undefined, { registerInput : {
+          username: "",
+          password: "",
+          confirmPassword: "test",
+          email: "123",
+        }
       });
     } catch (e) {
       error = e;
@@ -65,21 +67,22 @@ describe("Test register", () => {
     
     let error;
     try {
-      await register(undefined, {
-        username: "johndoe",
-        password: "test",
-        confirmPassword: "test",
-        email: "johndoe@fakemail.com",
+      await register(undefined, {registerInput: {
+          username: "johndoe",
+          password: "test",
+          confirmPassword: "test",
+          email: "johndoe@fakemail.com",
+        }
       });
     } catch (e) {
       error = e;
     }
     
     const registerErrors = [
-      new UserInputError("Username already used!"),
-      new UserInputError("Email already used!"),
+      new UserInputError("Username already used"),
+      new UserInputError("Email already used"),
     ];
-    expect(registerErrors).toContain(error);
+    expect(registerErrors).toContainEqual(error);
   });
   
   
@@ -93,17 +96,18 @@ describe("Test register", () => {
     
     let error;
     try {
-      await register(undefined, {
-        username: "johndoe",
-        password: "test",
-        confirmPassword: "test",
-        email: "johndoe@fakemail.com",
+      await register(undefined, { registerInput: {
+          username: "johndoe",
+          password: "test",
+          confirmPassword: "test",
+          email: "johndoe@fakemail.com",
+        }
       });
     } catch (e) {
       error = e;
     }
     
-    expect(error).toEqual(new UserInputError("Username already used!"));
+    expect(error).toEqual(new UserInputError("Username already used"));
   });
   
   it("should throw error if registering with already used email", async () => {
@@ -116,16 +120,17 @@ describe("Test register", () => {
     
     let error;
     try {
-      await register(undefined, {
-        username: "johndoe",
-        password: "test",
-        confirmPassword: "test",
-        email: "johndoe@fakemail.com",
+      await register(undefined, { registerInput: {
+          username: "johndoe1",
+          password: "test",
+          confirmPassword: "test",
+          email: "johndoe@fakemail.com",
+        }
       });
     } catch (e) {
       error = e;
     }
-    expect(error).toEqual(new UserInputError("Email already used!"));
+    expect(error).toEqual(new UserInputError("Email already used"));
   });
 });
 
@@ -134,9 +139,10 @@ describe("Test login", () => {
   it("should throw error if user for username is empty", async () => {
     let error;
     try {
-      await login(undefined, {
-        username: "",
-        password: "test",
+      await login(undefined, { loginInput: {
+          username: "",
+          password: "test",
+        }
       });
     } catch (e) {
       error = e;
@@ -150,9 +156,10 @@ describe("Test login", () => {
   it("should throw error if password is empty", async () => {
     let error;
     try {
-      await login(undefined, {
-        username: "",
-        password: "test",
+      await login(undefined, { loginInput: {
+          username: "",
+          password: "test",
+        }
       });
     } catch (e) {
       error = e;
@@ -168,12 +175,14 @@ describe("Test login", () => {
     const user = new UserModel({
       username: "johndoe",
       password: await bcrypt.hash("test", 10),
+      email: "testEmail@fake.com"
     });
     await user.save();
     try {
-      await login(undefined, {
-        username: "johndoe2",
-        password: "test",
+      await login(undefined, { loginInput: {
+          username: "johndoe1",
+          password: "test",
+        }
       });
     } catch (e) {
       error = e;
@@ -187,14 +196,16 @@ describe("Test login", () => {
     const user = new UserModel({
       username: "johndoe",
       password: await bcrypt.hash("test", 10),
+      email: "testEmail@fake.com"
     });
     await user.save();
     
     let error;
     try {
-      await login(undefined, {
-        username: "johndoe",
-        password: "test2",
+      await login(undefined, { loginInput: {
+          username: "johndoe",
+          password: "test2",
+        }
       });
     } catch (e) {
       error = e;
@@ -208,12 +219,14 @@ describe("Test login", () => {
     const user = new UserModel({
       username: "johndoe",
       password: await bcrypt.hash("test", 10),
+      email: "testEmail@fake.com"
     });
     await user.save();
     
-    const response = await login(undefined, {
-      username: "johndoe",
-      password: "test",
+    const response = await login(undefined, { loginInput: {
+        username: "johndoe",
+        password: "test",
+      }
     });
     const tokenPayload: UserInfo = jwt.decode(response.token) as UserInfo;
     expect(tokenPayload.username).toEqual("johndoe");

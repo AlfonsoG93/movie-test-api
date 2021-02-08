@@ -11,7 +11,7 @@ const InitialAddress = () => (MONGO) ? "mongo" : "localhost"
 const config: Config = {
   PORT: 5000,
   MONGO_URI: `mongodb://${InitialAddress()}:27017/${DB_NAME}`,
-  SECRET_KEY: "",
+  SECRET_KEY: "secret",
   DB_NAME: DB_NAME,
 };
 export default config;

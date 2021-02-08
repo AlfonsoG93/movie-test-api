@@ -11,7 +11,7 @@ npm ci
 npm run start
 ```
 
-Test running server by accessing `http://localhost:3000/`
+Test running server by accessing `http://localhost:5000/`
 
 ## Setup with Docker
 
@@ -22,4 +22,4 @@ docker-compose build
 docker-compose up
 ```
 
-Test running server by accessing `http://localhost:3000/`
+Test running server by accessing `http://localhost:5000/`

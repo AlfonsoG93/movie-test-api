@@ -15,7 +15,7 @@ export const addMovieValidator = (movieInput: AddMovieInput) => {
     errors.title = "Title must not be empty";
   }
   if (actors.length < 1) {
-    errors.actors = "Movie requires actors";
+    errors.actors = "Cast cannot be empty";
     if (actors.length > 1) {
       const hasDuplicate: boolean = actors.some((val, i) => actors.indexOf(val) !== i);
       if (hasDuplicate) {

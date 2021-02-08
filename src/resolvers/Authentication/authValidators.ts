@@ -10,6 +10,7 @@ export interface RegisterValidationErrors {
 export interface LoginValidationErrors {
   username?: string;
   password?: string;
+  general?: string;
 }
 
 export const registerFieldsValidator = (input: RegisterInput) => {
