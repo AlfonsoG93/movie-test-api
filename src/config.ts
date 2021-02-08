@@ -6,9 +6,11 @@ interface Config {
 }
 
 const DB_NAME = "movies";
+const MONGO = true;
+const InitialAddress = () => (MONGO) ? "mongo" : "localhost"
 const config: Config = {
   PORT: 5000,
-  MONGO_URI: `mongodb://localhost:27017/${DB_NAME}`,
+  MONGO_URI: `mongodb://${InitialAddress()}:27017/${DB_NAME}`,
   SECRET_KEY: "",
   DB_NAME: DB_NAME,
 };

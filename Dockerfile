@@ -6,4 +6,8 @@ COPY src ./src
 
 RUN npm ci
 
+COPY . .
+
+EXPOSE 5000
+
 ENTRYPOINT ["npm", "run", "start", "--"]

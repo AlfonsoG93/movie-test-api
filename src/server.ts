@@ -18,7 +18,7 @@ const args = (mongoString: string) => yargs.option("mongo-uri", {
 async function start() {
   if (process.env.NODE_ENV !== "production") {
     dotenv.config({ path: findConfig(".env") || "" });
-    config.MONGO_URI = (process.env.MONGO_CLOUD_URI) ? process.env.MONGO_CLOUD_URI : `mongodb://localhost:27017/${config.DB_NAME}`;
+    config.MONGO_URI = (process.env.MONGO_CLOUD_URI) ? process.env.MONGO_CLOUD_URI : config.MONGO_URI;
     config.SECRET_KEY = (process.env.SECRET_KEY) ? process.env.SECRET_KEY : `secret`;
   }
   const dbArgs = args(config.MONGO_URI);
