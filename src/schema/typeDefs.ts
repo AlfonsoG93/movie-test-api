@@ -11,7 +11,7 @@ const typeDefs = gql`
     type Movie {
         id: ID!
         title: String!
-        runtime: Int!
+        duration: Int!
         releaseDate: String!
         actors: [String]!
         createdAt: String!
@@ -47,9 +47,10 @@ const typeDefs = gql`
     }
 
     input AddMovieInput {
+        id: ID!
         title: String!
         releaseDate: String!
-        runtime: Int!
+        duration: Int!
         actors: [String]!
     }
 
@@ -95,7 +96,7 @@ const typeDefs = gql`
         register(registerInput: RegisterInput!): User!
         login(loginInput: LoginInput!): User!
         addMovie(addMovieInput: AddMovieInput!): Movie!
-        deleteMovie(movieID: ID!): String!
+        deleteMovie(movieId: ID!): String!
         addRating(addRatingInput: AddRatingInput!): Movie!
     }
 

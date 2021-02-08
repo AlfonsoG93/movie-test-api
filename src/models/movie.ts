@@ -9,7 +9,7 @@ export interface Rating {
 export interface Movie extends mongoose.Document {
   _id: string;
   title: string;
-  runtime: number;
+  duration: number;
   releaseDate: string;
   actors: string[];
   createdAt: string;
@@ -23,7 +23,7 @@ export interface Movie extends mongoose.Document {
 const MovieSchema = new mongoose.Schema(
   {
     title: { type: String, required: true },
-    runtime: { type: Number, required: true },
+    duration: { type: Number, required: true },
     releaseDate: { type: String, required: true },
     actors: [{ type: String, required: true }],
     ratings: [{
